@@ -80,9 +80,32 @@ def recommend_fits(fits, prompt):
 
     try:
         content = completion.choices[0].message.content
-        return json.loads(content)
+        return json.loads(content)["recommended_products"]
     except:
         return []
+
+
+def fetch_fits(fits):
+    response = []
+    print("Fetch these IDs:", fits)
+    fetch_result = index.fetch(ids=fits)
+    print(fetch_result)
+
+    for id_, record in fetch_result.vectors.items():
+        meta = record.metadata
+        response.append({
+            "ID": id_,
+            "item": meta.get("item"),
+            "Name": meta.get("name"),
+            "Brand": meta.get("brand"),
+            "Description": meta.get("description"),
+            "tags": meta.get("tags"),
+            "image": meta.get("image"),
+            "link": meta.get("link"),
+            "price": meta.get("price")
+        })
+
+    return response
 
 
 
@@ -123,6 +146,8 @@ def vectorize_prompt(data: dict):
 
     # construct the Reasoning prompt for LLAMA 3 8b
     fits = recommend_fits(fits, prompt)
+    # Fetch the given ID(s) from pinecone
+    fits = fetch_fits(fits)
 
     return fits
 
