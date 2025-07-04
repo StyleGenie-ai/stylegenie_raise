@@ -4,6 +4,7 @@ from transformers import CLIPProcessor, CLIPModel
 from PIL import Image
 from pinecone import Pinecone
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from groq import Groq
 
 load_dotenv()
@@ -14,6 +15,13 @@ index = pc.Index("womenfit")
 
 # Load fastapi
 app = FastAPI()
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000", "*"],  # your frontend
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Load qroq
 client = Groq(api_key=os.getenv("GROQ_API"))
@@ -87,9 +95,7 @@ def recommend_fits(fits, prompt):
 
 def fetch_fits(fits):
     response = []
-    print("Fetch these IDs:", fits)
     fetch_result = index.fetch(ids=fits)
-    print(fetch_result)
 
     for id_, record in fetch_result.vectors.items():
         meta = record.metadata

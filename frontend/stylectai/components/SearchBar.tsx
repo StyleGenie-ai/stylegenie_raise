@@ -1,25 +1,41 @@
+"use client"
 
-import { Search } from "lucide-react";
-import { Input } from "./ui/input";
-import { useState } from "react";
+import type React from "react"
 
-const SearchBar = () => {
-  const [searchQuery, setSearchQuery] = useState("Classy boardroom casual outfit");
-  
+import { useState } from "react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Search } from "lucide-react"
+
+interface SearchBarProps {
+  onSearch: (query: string) => void
+}
+
+const SearchBar = ({ onSearch }: SearchBarProps) => {
+  const [query, setQuery] = useState("")
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    onSearch(query)
+  }
+
   return (
-    <div className="relative w-full max-w-xl mx-auto mb-8">
-      <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
-        <Search className="h-5 w-5 text-muted-foreground" />
+    <form onSubmit={handleSubmit} className="flex gap-2 w-full">
+      <div className="relative flex-1">
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+        <Input
+          type="text"
+          placeholder="Search for fashion items, brands, or styles..."
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          className="pl-10 h-12 text-base"
+        />
       </div>
-      <Input
-        type="text"
-        value={searchQuery}
-        onChange={(e) => setSearchQuery(e.target.value)}
-        placeholder="Search for styles, outfits, or items..."
-        className="pl-10 py-6 text-base border bg-background/80 shadow-sm focus:ring-primary/20 focus-visible:ring-primary/20"
-      />
-    </div>
-  );
-};
+      <Button type="submit" size="lg" className="h-12 px-8">
+        Search
+      </Button>
+    </form>
+  )
+}
 
-export default SearchBar;
+export default SearchBar
