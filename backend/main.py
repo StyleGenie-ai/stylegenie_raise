@@ -1,14 +1,17 @@
+from dotenv import load_dotenv
 from transformers import CLIPProcessor, CLIPModel
 from PIL import Image
 from pinecone import Pinecone, PodSpec
 import torch
 import os
+import uvicorn
 from fastapi import FastAPI, Request
 from pydantic import BaseModel
 from typing import List
 
 app = FastAPI()
 
+load_dotenv()
 pc = Pinecone(api_key=os.getenv("PINE_CONE"))
 index = pc.Index("menfit")
 
@@ -51,3 +54,5 @@ def vectorize_prompt(data: dict):
     ]
 
     return response
+
+uvicorn.run(app, host="0.0.0.0", port=8000)
