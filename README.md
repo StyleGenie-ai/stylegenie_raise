@@ -6,9 +6,18 @@ Ai magic to turn your special events into fashioned memories
 ![Screenshot 1](.res/style_genie2.png)  
 [excalidraw.com](https://excalidraw.com/#json=IReMy21lGCVlc0-zm6GO-,Xhx8-JUIFLT8zvGy2u6Vqg)
 
+## How to run Backend
+- `cd backend`
+- make sure you have python and run `pip3 install -r requirments.txt`
+- use uvicorn to run fastapi ! `uvicorn main:app --host 0.0.0.0 --port 8000 --reload`
+- Now run the frontend ! 
 
+## How to run Frontend
+- `cd frontend`
+- make sure you have Nodejs locally and run `npm i` or if you have pnpm `pnpm i`
+- then run `npn run dev` or if you have pnpm `pnpm dev`
 
-## prompt testing
+## prompt testing (ai generated)
 
 ---
 
@@ -59,3 +68,11 @@ Ai magic to turn your special events into fashioned memories
 23. `men’s winter outfits that aren’t all black`
 24. `plus size formalwear for women pls`
 25. `just something gender neutral and cozy`
+
+
+# Authors
+- Noor Amjad - [GitHub](https://github.com/Justxd22) / [Twitter](https://twitter.com/_xd222) / [LinkedIn](https://www.linkedin.com/in/noor-amjad-xd)
+- 
+- 
+- 
+
