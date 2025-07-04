@@ -8,12 +8,19 @@ import uvicorn
 from fastapi import FastAPI, Request
 from pydantic import BaseModel
 from typing import List
-
-app = FastAPI()
+from groq import Groq
 
 load_dotenv()
+
+# Load pinecone
 pc = Pinecone(api_key=os.getenv("PINE_CONE"))
 index = pc.Index("menfit")
+
+# Load fastapi
+app = FastAPI()
+
+# Load qroq
+client = Groq()
 
 # Load FashionCLIP model and processor from Hugging Face
 model_name = "patrickjohncyh/fashion-clip"
@@ -27,6 +34,32 @@ def vectorize(text):
     return text_emb.cpu().tolist()
 
 
+def gen_tags(prompt):
+    completion = client.chat.completions.create(
+        model="llama-3.1-8b-instant",
+        messages=[
+            {
+              "role": "system",
+              "content": "You are a fashion assistant Al. Given a user's outfit prompt, extract up to 10 relevant descriptive tags. in JSON format. The tags will be used to search a fashion product database.\n\nTags can include clothing types, styles, seasons, occasions, aesthetics, gender hints, materials.... etc\n\nOnly return a flat JSON array of lowercase string tags.\nAvoid explanations or nested objects. Output only JSON.\noutput json example:\n\n{\n  \"tags\": [\"casual\", \"mall\", \"cute\", \"comfy\", \"friends\", \"outfit\"]\n}\n\n\nThe possible tags are:\n- gender (e.g., \"men\", \"women\", \"unisex\")\n- occasion (e.g., \"wedding\", \"casual\", \"beach\", \"business\", \"party\")\n- season (e.g., \"summer\", \"winter\", \"spring\", \"fall\")\n- style (e.g., \"formal\", \"semi-formal\", \"relaxed\", \"trendy\", \"classic\")\n- item (e.g., \"dress\", \"suit\", \"shorts\", \"jacket\", \"sneakers\")\netc...."
+            },
+            {
+              "role": "user",
+              "content": prompt
+            }
+        ],
+        temperature=1,
+        max_completion_tokens=1024,
+        top_p=1,
+        stream=False,
+        response_format={"type": "json_object"},
+        stop=None,
+    )
+    try:
+        return completion.choices[0].message
+    except:
+        return ""
+
+
 @app.get("/")
 def root():
     return {"msg": "Hallllooo!"}
@@ -34,14 +67,18 @@ def root():
 @app.post("/api/query")
 def vectorize_prompt(data: dict):
     prompt = data["prompt"]
-    vector = vectorize(prompt)
-    # get tags from llama3 from groq using the prompt
+    vector = vectorize(prompt)      # Get vector from FashionCLIP
+    tags = gen_tags(prompt)         # Use LLaMA or NLP to generate prompt tags
 
+    # Pinecone query with tag filter
     results = index.query(
         vector=vector,
         top_k=10,
         include_metadata=True,
-        include_values=False
+        include_values=False,
+        filter={
+            "tags": {"$in": tags}
+        }
     )
 
     response = [

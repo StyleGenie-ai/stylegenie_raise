@@ -7,3 +7,4 @@ pydantic
 typing
 dotenv
 uvicorn
+groq
