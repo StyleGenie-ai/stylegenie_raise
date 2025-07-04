@@ -1,0 +1,7 @@
+pinecone
+transformers
+PIL
+torch
+fastapi
+pydantic
+typing
