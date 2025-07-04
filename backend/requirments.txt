@@ -1,6 +1,6 @@
 pinecone
 transformers
-PIL
+pillow
 torch
 fastapi
 pydantic

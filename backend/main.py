@@ -20,7 +20,7 @@ index = pc.Index("menfit")
 app = FastAPI()
 
 # Load qroq
-client = Groq()
+client = Groq(api_key=os.getenv("GROQ_API"))
 
 # Load FashionCLIP model and processor from Hugging Face
 model_name = "patrickjohncyh/fashion-clip"
@@ -68,6 +68,7 @@ def root():
 def vectorize_prompt(data: dict):
     prompt = data["prompt"]
     vector = vectorize(prompt)      # Get vector from FashionCLIP
+    print("Vector:", type(vector), len(vector), type(vector[0]))
     tags = gen_tags(prompt)         # Use LLaMA or NLP to generate prompt tags
 
     # Pinecone query with tag filter
