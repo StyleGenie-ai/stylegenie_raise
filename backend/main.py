@@ -73,7 +73,7 @@ def vectorize_prompt(data: dict):
     # Pinecone query with tag filter
     results = index.query(
         vector=vector,
-        top_k=10,
+        top_k=20,
         include_metadata=True,
         include_values=False,
         filter={
@@ -81,15 +81,18 @@ def vectorize_prompt(data: dict):
         }
     )
 
-    response = [
-        {
-            "id": match["id"],
-            "score": match["score"],
-            "metadata": match.get("metadata", {})
-        }
-        for match in results["matches"]
-    ]
+    fits = []
+    for item in results:
+        meta = item['metadata']
+        fits.append(
+            f"- ID: {meta['id']}\n"
+            f"  item: {meta['item']}\n"
+            f"  Name: {meta['name']}\n"
+            f"  Brand: {meta['brand']}\n"
+            f"  Description: {meta['description']}\n"
+            f"  tags: {meta['tags']}\n"
+        )
 
-    return response
+    return fits
 
 uvicorn.run(app, host="0.0.0.0", port=8000)
