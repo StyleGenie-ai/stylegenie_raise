@@ -2,6 +2,7 @@ pinecone
 transformers
 pillow
 torch
+open_clip_torch
 fastapi
 pydantic
 typing

@@ -1,4 +1,5 @@
 import os, json, uvicorn, torch
+import open_clip
 from dotenv import load_dotenv
 from transformers import CLIPProcessor, CLIPModel
 from PIL import Image
@@ -11,7 +12,7 @@ load_dotenv()
 
 # Load pinecone
 pc = Pinecone(api_key=os.getenv("PINE_CONE"))
-index = pc.Index("womenfit")
+index = pc.Index("womenf")
 
 # Load fastapi
 app = FastAPI()
@@ -26,17 +27,18 @@ app.add_middleware(
 # Load qroq
 client = Groq(api_key=os.getenv("GROQ_API"))
 
-# Load FashionCLIP model and processor from Hugging Face
-model_name = "patrickjohncyh/fashion-clip"
-model = CLIPModel.from_pretrained(model_name)
-processor = CLIPProcessor.from_pretrained(model_name)
+model, preprocess_train, preprocess_val = open_clip.create_model_and_transforms('hf-hub:Marqo/marqo-fashionSigLIP')
+tokenizer = open_clip.get_tokenizer('hf-hub:Marqo/marqo-fashionSigLIP')
+
+device = "cuda" if torch.cuda.is_available() else "cpu"
+model.to(device)
+model.eval()
 
 def vectorize(text):
-    txt_inputs = processor(text=text, return_tensors="pt", padding=True)
-    text_emb = model.get_text_features(**txt_inputs)
-    text_emb = torch.nn.functional.normalize(text_emb, p=2, dim=1)
-    return text_emb.cpu().tolist()
-
+    text = tokenizer([text]).to(device)
+    with torch.cuda.amp.autocast(enabled=device.startswith("cuda")):
+        text_emb = model.encode_text(text, normalize=True)
+    return text_emb.squeeze(0).cpu().tolist()
 
 def gen_tags(prompt):
     completion = client.chat.completions.create(
@@ -75,7 +77,7 @@ def recommend_fits(fits, prompt):
             },
             {
               "role": "user",
-              "content": ""
+              "content": response
             }
         ],
         temperature=1,
@@ -156,5 +158,26 @@ def vectorize_prompt(data: dict):
     fits = fetch_fits(fits)
 
     return fits
+
+# test pinecone without recommendation
+@app.post("/api/query_test")
+def vectorize_prompt(data: dict):
+    prompt = data["prompt"]
+    vector = vectorize(prompt)      # Get vector from FashionCLIP
+    tags = gen_tags(prompt)         # Use LLaMA or NLP to generate prompt tags
+    print(tags)
+
+    # Pinecone query with tag filter
+    results = index.query(
+        vector=vector,
+        top_k=18,
+        include_metadata=True,
+        include_values=False,
+        filter={
+            "tags": {"$in": tags}
+        }
+    )
+    return results
+
 
 # uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)
