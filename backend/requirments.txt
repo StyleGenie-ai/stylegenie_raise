@@ -1,0 +1,10 @@
+pinecone
+transformers
+pillow
+torch
+fastapi
+pydantic
+typing
+dotenv
+uvicorn
+groq
