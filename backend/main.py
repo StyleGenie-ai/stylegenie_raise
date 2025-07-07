@@ -1,4 +1,5 @@
 import os, json, uvicorn, torch
+import open_clip
 from dotenv import load_dotenv
 from transformers import CLIPProcessor, CLIPModel
 from PIL import Image
@@ -11,7 +12,8 @@ load_dotenv()
 
 # Load pinecone
 pc = Pinecone(api_key=os.getenv("PINE_CONE"))
-index = pc.Index("womenfit")
+index_m = pc.Index("menf")
+index_w = pc.Index("womenf")
 
 # Load fastapi
 app = FastAPI()
@@ -26,17 +28,18 @@ app.add_middleware(
 # Load qroq
 client = Groq(api_key=os.getenv("GROQ_API"))
 
-# Load FashionCLIP model and processor from Hugging Face
-model_name = "patrickjohncyh/fashion-clip"
-model = CLIPModel.from_pretrained(model_name)
-processor = CLIPProcessor.from_pretrained(model_name)
+model, preprocess_train, preprocess_val = open_clip.create_model_and_transforms('hf-hub:Marqo/marqo-fashionSigLIP')
+tokenizer = open_clip.get_tokenizer('hf-hub:Marqo/marqo-fashionSigLIP')
+
+device = "cuda" if torch.cuda.is_available() else "cpu"
+model.to(device)
+model.eval()
 
 def vectorize(text):
-    txt_inputs = processor(text=text, return_tensors="pt", padding=True)
-    text_emb = model.get_text_features(**txt_inputs)
-    text_emb = torch.nn.functional.normalize(text_emb, p=2, dim=1)
-    return text_emb.cpu().tolist()
-
+    text = tokenizer([text]).to(device)
+    with torch.cuda.amp.autocast(enabled=device.startswith("cuda")):
+        text_emb = model.encode_text(text, normalize=True)
+    return text_emb.squeeze(0).cpu().tolist()
 
 def gen_tags(prompt):
     completion = client.chat.completions.create(
@@ -64,6 +67,59 @@ def gen_tags(prompt):
     except:
         return ""
 
+def gen_fits(prompt):
+    completion = client.chat.completions.create(
+        model="meta-llama/llama-4-scout-17b-16e-instruct",
+        messages=[
+            {
+              "role": "system",
+              "content": "You are a fashion assistant AI.\n\nYour task is to generate a fashionable outfit in response to a user prompt. An outfit must include exactly 3 pieces: a **top**, a **bottom**, and **shoes**.\n\nHowever, if the selected top is a one-piece item such as a **dress** or **minidress**, you MUST skip the bottom piece entirely.\n\nEach piece must include:\n- an `item` (selected from the fixed list of possible items),\n- and a list of `tags` (selected from the provided list of valid tags).\n\nDO NOT invent any tags or item types outside the provided arrays. No explanations. Only return valid JSON, no nesting or extra fields.\n\n❗ NEVER skip the bottom unless the top is exactly \"dress\" or \"minidress\".\n\n---\n\nAvailable items: ['skort', 'jacket', 'tights', 'bodysuit', 'skirt', 'pants', 'trousers', 'tote', 'bracelet', 'bra', 'loafers', 'wallet', 'coat', 'miniskirt', 'hoodie', 'dress', 'heels', 'mules', 'bag', 'belt', 'jeans', 'shorts', 'boots', 'sandals', 'sweatshirt', 'derbys', 'trousers.', 'sneakers', 'sweater', 'shirt', 'minidress', 'top', 't-shirt', 'camisole', 'vest', 'turtleneck', 'flats', 'polo', 'blouse', 'cardigan', 'henley', 'blazer', 'headband']\n\nAvailable tags: ['skort', 'sexy', 'gym', 'trousers', 'lightblue', 'pink', 'coat', 'travel', 'attractive', 'hoodie', 'belt', 'bag', 'jeans', 'olive', 'floral', 'striped', 'purple', 'luxury', 'sneakers', 'grey', 'lightweight', 'comfy', 'yellow', 'layering', 'casual', 'romance', 't-shirt', 'brown', 'camisole', 'turtleneck', 'swim', 'henley', 'polo', 'headband', 'tights', 'jacket', 'polca-dots', 'pants', 'tote', 'breath', 'bracelet', 'date', 'multicolor', 'miniskirt', 'dress', 'bold', 'pool', 'sandals', 'sweatshirt', 'nostalgic', 'blue', 'derbys', 'shirt', 'silver', 'mint', 'hot', 'sport', 'modest', 'top', 'date-night', 'workout', 'green', 'business', 'streetwear', 'trendy', 'cardigan', 'navy', 'taupe', 'bodysuit', 'blush', 'mules', 'gray', 'breathable', 'bikini', 'lavender', 'khaki', 'fit', 'summer', 'boots', 'white', 'trousers.', 'black', 'sweater', 'beach', 'formal', 'swimwear', 'burgundy', 'urban', 'work', 'blouse', 'cool', 'winter', 'burgundy, blue', 'ivory', 'ocean', 'skirt', 'bra', 'loafers', 'wallet', 'heels', 'light', 'shorts', 'conservative', 'red', 'professional', 'minimalist', 'maximalist', 'camo', 'minidress', 'retro', 'office', 'orange', 'peach', 'vest', 'beige', 'party', 'flats', 'blazer', 'vintage']\n\n---\n\nRespond in **pure JSON** format like:\n\n{\n  \"top\": {\n    \"item\": \"blouse\",\n    \"tags\": [\"formal\", \"white\", \"elegant\"]\n  },\n  \"bottom\": {\n    \"item\": \"skirt\",\n    \"tags\": [\"romance\", \"pink\", \"lightweight\"]\n  },\n  \"shoes\": {\n    \"item\": \"heels\",\n    \"tags\": [\"date-night\", \"stylish\", \"luxury\"]\n  }\n}\n\nExample (if top doesn't need a bottom ONLY):\n\n{\n  \"top\": {\n    \"item\": \"dress\",\n    \"tags\": [\"summer\", \"casual\", \"lightweight\"]\n  },\n  \"shoes\": {\n    \"item\": \"sandals\",\n    \"tags\": [\"white\", \"comfortable\", \"travel\"]\n  }\n}\n\n\n---"
+            },
+            {
+              "role": "user",
+              "content": prompt
+            }
+        ],
+        temperature=1,
+        max_completion_tokens=1024,
+        top_p=1,
+        stream=False,
+        response_format={"type": "json_object"},
+        stop=None,
+    )
+    try:
+        content = completion.choices[0].message.content
+        return json.loads(content)
+    except:
+        return ""
+
+def gen_fits_men(prompt):
+    completion = client.chat.completions.create(
+        model="meta-llama/llama-4-scout-17b-16e-instruct",
+        messages=[
+            {
+              "role": "system",
+              "content": "You are a fashion assistant AI.\n\nYour task is to generate a fashionable men's outfit in response to a user prompt. An outfit must include **exactly 3 pieces**: a **top**, a **bottom**, and **shoes**.\n\nEach piece must include:\n- an `item` (selected from the fixed list of possible items),\n- and a list of `tags` (selected from the provided list of valid tags).\n\nDO NOT invent any tags or item types outside the provided arrays. No explanations. Only return valid JSON, no nesting or extra fields.\n\n---\n\nAvailable items: ['jacket', 'pants', 'trousers', 'sweatpants', 'bracelet', 'scarf', 'tote', 'loafers', 'backpack', 'coat', 'wallet', 'hoodie', 'belt', 'bag', 'shorts', 'jeans', 'suitcase', 'sandals', 'sweatshirt', 'shoes', 'sneakers', 'sweater', 'cap', 'shirt', 'top', 't-shirt', 'balaclava', 'vest', 'turtleneck', 'polo', 'cardigan', 'blazer']\n\nAvailable tags: ['black, white', 'sexy', 'gym', 'trousers', 'pink', 'coat', 'travel', 'attractive', 'hoodie', 'belt', 'bag', 'jeans', 'olive', 'floral', 'striped', 'shoes', 'purple', 'luxury', 'sneakers', 'grey', 'indigo', 'lightweight', 'comfy', 'yellow', 'layering', 'casual', 'romance', 't-shirt', 'brown', 'turtleneck', 'polo', 'jacket', 'pants', 'bracelet', 'breath', 'sweatpants', 'tote', 'date', 'backpack', 'multicolor', 'beige,black', 'bold', 'pool', 'sandals', 'sweatshirt', 'nostalgic', 'blue', 'shirt', 'silver', 'hot', 'sport', 'modest', 'top', 'date-night', 'workout', 'green', 'business', 'streetwear', 'trendy', 'cardigan', 'navy', 'taupe', 'gray', 'breathable', 'suitcase', 'khaki', 'summer', 'fit', 'white', 'black', 'sweater', 'plaid', 'beach', 'formal', 'burgundy', 'urban', 'work', 'cool', 'winter', 'ivory', 'scarf', 'loafers', 'wallet', 'tan', 'light', 'shorts', 'conservative', 'red', 'professional', 'minimalist', 'maximalist', 'cap', 'camo', 'retro', 'animal', 'office', 'orange', 'balaclava', 'vest', 'beige', 'party', 'blazer', 'vintage']\n\nYou MUST ONLY pick from the lists above. If you include anything not in the list, your output will be INVALID.\n\nIf a tag or item does not exist in the list, do NOT attempt to approximate it.\n\nYour final response must be a valid JSON object containing only the 3 required pieces (top, bottom, shoes), and only valid items and tags.\n\nplease review your response and ensure it's following the rules above\n\n---\n\nRespond in **pure JSON** format like:\n\n```json\n{\n  \"top\": {\n    \"item\": \"hoodie\",\n    \"tags\": [\"casual\", \"comfy\", \"cool\"]\n  },\n  \"bottom\": {\n    \"item\": \"jeans\",\n    \"tags\": [\"blue\", \"urban\", \"fit\"]\n  },\n  \"shoes\": {\n    \"item\": \"sneakers\",\n    \"tags\": [\"white\", \"comfortable\", \"streetwear\"]\n  }\n}\n```\n---"
+            },
+            {
+              "role": "user",
+              "content": prompt
+            }
+        ],
+        temperature=1,
+        max_completion_tokens=1024,
+        top_p=1,
+        stream=False,
+        response_format={"type": "json_object"},
+        stop=None,
+    )
+    try:
+        content = completion.choices[0].message.content
+        return json.loads(content)
+    except:
+        return ""
+
+
 def recommend_fits(fits, prompt):
     response = {"user_prompt": prompt, "products": fits}
     completion = client.chat.completions.create(
@@ -75,7 +131,7 @@ def recommend_fits(fits, prompt):
             },
             {
               "role": "user",
-              "content": ""
+              "content": response
             }
         ],
         temperature=1,
@@ -127,7 +183,7 @@ def vectorize_prompt(data: dict):
     print(tags)
 
     # Pinecone query with tag filter
-    results = index.query(
+    results = index_w.query(
         vector=vector,
         top_k=18,
         include_metadata=True,
@@ -157,4 +213,133 @@ def vectorize_prompt(data: dict):
 
     return fits
 
+
+@app.post("/api/queryy")
+def vectorize_promptt(data: dict):
+    prompt = data["prompt"]
+    vector = vectorize(prompt)      # Get vector from MarqoFashionCLIP
+    fit = gen_fits(prompt)         # Use LLaMA to generate fits
+    print(fit)
+
+    final_fit = []
+    for i in fit:
+        try:
+            results = index_w.query(
+                vector=vector,
+                top_k=1,
+                include_metadata=True,
+                include_values=False,
+                filter={
+                    "item": {"$eq": fit[i]["item"]}, 
+                    "tags": {"$in": fit[i]['tags']}
+                }
+            )
+            print(fit[i]["item"], fit[i]['tags'], results)
+            meta = results.matches[0]['metadata']
+        except:
+            results = index_w.query(
+                vector=vector,
+                top_k=1,
+                include_metadata=True,
+                include_values=False,
+                filter={
+                    "item": {"$eq": fit[i]["item"]}, 
+                }
+            )
+            meta = results.matches[0]['metadata']
+        final_fit.append({
+            "item": meta.get("item"),
+            "Name": meta.get("name"),
+            "Brand": meta.get("brand"),
+            "Description": meta.get("description"),
+            "tags": meta.get("tags"),
+            "image": meta.get("image"),
+            "link": meta.get("link"),
+            "price": meta.get("price")
+        })
+
+    return final_fit
+
+
+@app.post("/api/queryy_men")
+def vectorize_promptt(data: dict):
+    prompt = data["prompt"]
+    vector = vectorize(prompt)      # Get vector from MarqoFashionCLIP
+    fit = gen_fits_men(prompt)         # Use LLaMA to generate fits
+    print(fit)
+
+    final_fit = []
+    for i in fit:
+        try:
+            results = index_m.query(
+                vector=vector,
+                top_k=1,
+                include_metadata=True,
+                include_values=False,
+                filter={
+                    "item": {"$eq": fit[i]["item"]}, 
+                    "tags": {"$in": fit[i]['tags']}
+                }
+            )
+            print(fit[i]["item"], fit[i]['tags'], results)
+            meta = results.matches[0]['metadata']
+        except:
+            results = index_m.query(
+                vector=vector,
+                top_k=1,
+                include_metadata=True,
+                include_values=False,
+                filter={
+                    "item": {"$eq": fit[i]["item"]}, 
+                }
+            )
+            meta = results.matches[0]['metadata']
+        final_fit.append({
+            "item": meta.get("item"),
+            "Name": meta.get("name"),
+            "Brand": meta.get("brand"),
+            "Description": meta.get("description"),
+            "tags": meta.get("tags"),
+            "image": meta.get("image"),
+            "link": meta.get("link"),
+            "price": meta.get("price")
+        })
+
+    return final_fit
+
+# test pinecone without recommendation
+@app.post("/api/query_test")
+def vectorize_prompt(data: dict):
+    prompt = data["prompt"]
+    vector = vectorize(prompt)      # Get vector from FashionCLIP
+    tags = gen_tags(prompt)         # Use LLaMA or NLP to generate prompt tags
+    print(tags)
+
+    # Pinecone query with tag filter
+    results = index_w.query(
+        vector=vector,
+        top_k=18,
+        include_metadata=True,
+        include_values=False,
+        filter={
+            "tags": {"$in": tags}
+        }
+    )
+    # print(results)
+    fits = []
+    for item in results.matches:
+
+        meta = item['metadata']
+        fits.append({
+            "item": meta.get("item"),
+            "Name": meta.get("name"),
+            "Brand": meta.get("brand"),
+            "Description": meta.get("description"),
+            "tags": meta.get("tags"),
+            "image": meta.get("image"),
+            "link": meta.get("link"),
+            "price": meta.get("price")
+        })
+    # print(results.matches)
+    return fits
 # uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)
