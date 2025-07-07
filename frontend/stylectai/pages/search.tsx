@@ -6,6 +6,8 @@ import Navbar from "@/components/Navbar"
 import SearchBar from "@/components/SearchBar"
 import SearchResults from "@/components/SearchResults"
 import { Loader2 } from "lucide-react"
+import ToggleButton from '@mui/material/ToggleButton';
+import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 
 export interface FashionItem {
   ID: string
@@ -24,16 +26,23 @@ const Index = () => {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [hasSearched, setHasSearched] = useState(false)
+  const [alignment, setAlignment] = useState('women');
 
+  const handleToggle = (
+    event: React.MouseEvent<HTMLElement>,
+    newAlignment: string,
+  ) => {
+    setAlignment(newAlignment);
+  };
   const handleSearch = async (query: string) => {
     if (!query.trim()) return
-
+    const url = (alignment ==="women") ? "http://127.0.0.1:8000/api/queryy" : "http://127.0.0.1:8000/api/queryy_men"
     setIsLoading(true)
     setError(null)
     setHasSearched(true)
 
     try {
-      const response = await fetch("http://127.0.0.1:8000/api/queryy_men", {
+      const response = await fetch(url, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -71,6 +80,16 @@ const Index = () => {
             </div>
 
             <div className="max-w-4xl mx-auto mb-8">
+              <ToggleButtonGroup
+                color="standard"
+                value={alignment}
+                exclusive
+                onChange={handleToggle}
+                aria-label="Platform"
+              >
+                <ToggleButton value="women">Women</ToggleButton>
+                <ToggleButton value="men">Men</ToggleButton>
+              </ToggleButtonGroup>
               <SearchBar onSearch={handleSearch} />
             </div>
 
