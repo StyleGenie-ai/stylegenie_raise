@@ -40,14 +40,14 @@ def vectorize(text):
         text_emb = model.encode_text(text, normalize=True)
     return text_emb.squeeze(0).cpu().tolist()
 
-def gen_tags(prompt):
+def gen_fits(prompt):
     completion = client.chat.completions.create(
-        model="llama-3.1-8b-instant",
+        model="meta-llama/llama-4-scout-17b-16e-instruct",
         messages=[
             {
               "role": "system",
-              "content": "You are a fashion assistant Al. Given a user's outfit prompt, extract up to 10 relevant descriptive tags. in JSON format. The tags will be used to search a fashion product database.\n\nTags can include clothing types, styles, seasons, occasions, aesthetics, gender hints, materials.... etc\n\nOnly return a flat JSON array of lowercase string tags.\nAvoid explanations or nested objects. Output only JSON.\noutput json example:\n\n{\n  \"tags\": [\"casual\", \"mall\", \"cute\", \"comfy\", \"friends\", \"outfit\"]\n}\n\n\nThe possible tags are:\n- gender (e.g., \"men\", \"women\", \"unisex\")\n- occasion (e.g., \"wedding\", \"casual\", \"beach\", \"business\", \"party\")\n- season (e.g., \"summer\", \"winter\", \"spring\", \"fall\")\n- style (e.g., \"formal\", \"semi-formal\", \"relaxed\", \"trendy\", \"classic\")\n- item (e.g., \"dress\", \"suit\", \"shorts\", \"jacket\", \"sneakers\")\netc...."
-            },
+        "content": "You are a fashion assistant AI.\n\nYour task is to generate a fashionable outfit in response to a user prompt. An outfit must include exactly 3 pieces: a **top**, a **bottom**, and **shoes**.\n\nHowever, if the selected top is a one-piece item such as a **dress** or **minidress**, you MUST skip the bottom piece entirely.\n\nEach piece must include:\n- an `item` (selected from the fixed list of possible items),\n- and a list of `tags` (selected from the provided list of valid tags).\n\nDO NOT invent any tags or item types outside the provided arrays. No explanations. Only return valid JSON, no nesting or extra fields.\n\n❗ NEVER skip the bottom unless the top is exactly \"dress\" or \"minidress\".\n\n---\n\nAvailable items: ['skort', 'jacket', 'tights', 'bodysuit', 'skirt', 'pants', 'trousers', 'tote', 'bracelet', 'bra', 'loafers', 'wallet', 'coat', 'miniskirt', 'hoodie', 'dress', 'heels', 'mules', 'bag', 'belt', 'jeans', 'shorts', 'boots', 'sandals', 'sweatshirt', 'derbys', 'trousers.', 'sneakers', 'sweater', 'shirt', 'minidress', 'top', 't-shirt', 'camisole', 'vest', 'turtleneck', 'flats', 'polo', 'blouse', 'cardigan', 'henley', 'blazer', 'headband']\n\nAvailable tags: ['skort', 'sexy', 'gym', 'trousers', 'lightblue', 'pink', 'coat', 'travel', 'attractive', 'hoodie', 'belt', 'bag', 'jeans', 'olive', 'floral', 'striped', 'purple', 'luxury', 'sneakers', 'grey', 'lightweight', 'comfy', 'yellow', 'layering', 'casual', 'romance', 't-shirt', 'brown', 'camisole', 'turtleneck', 'swim', 'henley', 'polo', 'headband', 'tights', 'jacket', 'polca-dots', 'pants', 'tote', 'breath', 'bracelet', 'date', 'multicolor', 'miniskirt', 'dress', 'bold', 'pool', 'sandals', 'sweatshirt', 'nostalgic', 'blue', 'derbys', 'shirt', 'silver', 'mint', 'hot', 'sport', 'modest', 'top', 'date-night', 'workout', 'green', 'business', 'streetwear', 'trendy', 'cardigan', 'navy', 'taupe', 'bodysuit', 'blush', 'mules', 'gray', 'breathable', 'bikini', 'lavender', 'khaki', 'fit', 'summer', 'boots', 'white', 'trousers.', 'black', 'sweater', 'beach', 'formal', 'swimwear', 'burgundy', 'urban', 'work', 'blouse', 'cool', 'winter', 'burgundy, blue', 'ivory', 'ocean', 'skirt', 'bra', 'loafers', 'wallet', 'heels', 'light', 'shorts', 'conservative', 'red', 'professional', 'minimalist', 'maximalist', 'camo', 'minidress', 'retro', 'office', 'orange', 'peach', 'vest', 'beige', 'party', 'flats', 'blazer', 'vintage']\n\n---\n\nRespond in **pure JSON** format like:\n\n{\n  \"top\": {\n    \"item\": \"blouse\",\n    \"tags\": [\"formal\", \"white\", \"elegant\"]\n  },\n  \"bottom\": {\n    \"item\": \"skirt\",\n    \"tags\": [\"romance\", \"pink\", \"lightweight\"]\n  },\n  \"shoes\": {\n    \"item\": \"heels\",\n    \"tags\": [\"date-night\", \"stylish\", \"luxury\"]\n  }\n}\n\nExample (if top doesn't need a bottom ONLY):\n\n{\n  \"top\": {\n    \"item\": \"dress\",\n    \"tags\": [\"summer\", \"casual\", \"lightweight\"]\n  },\n  \"shoes\": {\n    \"item\": \"sandals\",\n    \"tags\": [\"white\", \"comfortable\", \"travel\"]\n  }\n}\n\n\n---"
+      },
             {
               "role": "user",
               "content": prompt
@@ -62,7 +62,7 @@ def gen_tags(prompt):
     )
     try:
         content = completion.choices[0].message.content
-        return json.loads(content)['tags']
+        return json.loads(content)
     except:
         return ""
 
@@ -124,47 +124,48 @@ def root():
 @app.post("/api/query")
 def vectorize_prompt(data: dict):
     prompt = data["prompt"]
-    vector = vectorize(prompt)      # Get vector from FashionCLIP
-    tags = gen_tags(prompt)         # Use LLaMA or NLP to generate prompt tags
-    print(tags)
+    vector = vectorize(prompt)      # Get vector from MarqoFashionCLIP
+    fit = gen_fits(prompt)         # Use LLaMA to generate fits
+    print(fit)
 
-    # Pinecone query with tag filter
-    results = index.query(
-        vector=vector,
-        top_k=18,
-        include_metadata=True,
-        include_values=False,
-        filter={
-            "tags": {"$in": tags}
-        }
-    )
+    final_fit = []
+    for i in fit:
+        results = index.query(
+            vector=vector,
+            top_k=1,
+            include_metadata=True,
+            include_values=False,
+            filter={
+                "item": {"$eq": i["item"]}, 
+                "tags": {"$in": i['tags']}
+            }
+        )
 
-    fits = []
-    for item in results.matches:
-
-        meta = item['metadata']
-        fits.append({
-            "ID": meta['id'],
-            "item": meta['item'],
-            "Name": meta['name'],
-            "Brand": meta['brand'],
-            "Description": meta['description'],
-            "tags": meta['tags']
+        meta = results.matches[0]['metadata']
+        final_fit.append({
+            "item": meta.get("item"),
+            "Name": meta.get("name"),
+            "Brand": meta.get("brand"),
+            "Description": meta.get("description"),
+            "tags": meta.get("tags"),
+            "image": meta.get("image"),
+            "link": meta.get("link"),
+            "price": meta.get("price")
         })
 
     # construct the Reasoning prompt for LLAMA 3 8b
-    fits = recommend_fits(fits, prompt)
+    # fits = recommend_fits(fits, prompt)
     # Fetch the given ID(s) from pinecone
-    fits = fetch_fits(fits)
+    # fits = fetch_fits(fits)
 
-    return fits
+    return final_fit
 
 # test pinecone without recommendation
 @app.post("/api/query_test")
 def vectorize_prompt(data: dict):
     prompt = data["prompt"]
     vector = vectorize(prompt)      # Get vector from FashionCLIP
-    tags = gen_tags(prompt)         # Use LLaMA or NLP to generate prompt tags
+    tags = gen_fits(prompt)         # Use LLaMA or NLP to generate prompt tags
     print(tags)
 
     # Pinecone query with tag filter
