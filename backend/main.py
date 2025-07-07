@@ -67,7 +67,7 @@ def gen_tags(prompt):
     except:
         return ""
 
-def gen_fits(prompt):
+def gen_fits_women(prompt):
     completion = client.chat.completions.create(
         model="meta-llama/llama-4-scout-17b-16e-instruct",
         messages=[
@@ -151,7 +151,7 @@ def recommend_fits(fits, prompt):
 
 def fetch_fits(fits):
     response = []
-    fetch_result = index.fetch(ids=fits)
+    fetch_result = index_w.fetch(ids=fits)
 
     for id_, record in fetch_result.vectors.items():
         meta = record.metadata
@@ -175,6 +175,7 @@ def fetch_fits(fits):
 def root():
     return {"msg": "Hallllooo!"}
 
+# using old pinecone and old way of getting a prompt
 @app.post("/api/query")
 def vectorize_prompt(data: dict):
     prompt = data["prompt"]
@@ -214,17 +215,25 @@ def vectorize_prompt(data: dict):
     return fits
 
 
-@app.post("/api/queryy")
-def vectorize_promptt(data: dict):
+# using new pinecone and new way with marqo
+@app.post("/api/query_prompt")
+def vectorize_prompt(data: dict):
     prompt = data["prompt"]
+    gender = data["gender"]
+    if gender == "men":
+        index = index_m
+        fit = gen_fits_men(prompt)         # Use LLaMA to generate fits
+    else:
+        index = index_w
+        fit = gen_fits_women(prompt)         # Use LLaMA to generate fits     
+  
     vector = vectorize(prompt)      # Get vector from MarqoFashionCLIP
-    fit = gen_fits(prompt)         # Use LLaMA to generate fits
     print(fit)
 
     final_fit = []
     for i in fit:
         try:
-            results = index_w.query(
+            results = index.query(
                 vector=vector,
                 top_k=1,
                 include_metadata=True,
@@ -237,54 +246,7 @@ def vectorize_promptt(data: dict):
             print(fit[i]["item"], fit[i]['tags'], results)
             meta = results.matches[0]['metadata']
         except:
-            results = index_w.query(
-                vector=vector,
-                top_k=1,
-                include_metadata=True,
-                include_values=False,
-                filter={
-                    "item": {"$eq": fit[i]["item"]}, 
-                }
-            )
-            meta = results.matches[0]['metadata']
-        final_fit.append({
-            "item": meta.get("item"),
-            "Name": meta.get("name"),
-            "Brand": meta.get("brand"),
-            "Description": meta.get("description"),
-            "tags": meta.get("tags"),
-            "image": meta.get("image"),
-            "link": meta.get("link"),
-            "price": meta.get("price")
-        })
-
-    return final_fit
-
-
-@app.post("/api/queryy_men")
-def vectorize_promptt(data: dict):
-    prompt = data["prompt"]
-    vector = vectorize(prompt)      # Get vector from MarqoFashionCLIP
-    fit = gen_fits_men(prompt)         # Use LLaMA to generate fits
-    print(fit)
-
-    final_fit = []
-    for i in fit:
-        try:
-            results = index_m.query(
-                vector=vector,
-                top_k=1,
-                include_metadata=True,
-                include_values=False,
-                filter={
-                    "item": {"$eq": fit[i]["item"]}, 
-                    "tags": {"$in": fit[i]['tags']}
-                }
-            )
-            print(fit[i]["item"], fit[i]['tags'], results)
-            meta = results.matches[0]['metadata']
-        except:
-            results = index_m.query(
+            results = index.query(
                 vector=vector,
                 top_k=1,
                 include_metadata=True,
