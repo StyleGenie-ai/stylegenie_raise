@@ -14,7 +14,7 @@ Ai magic to turn your special events into fashioned memories
 
 ## Quick overview 
 - Scrapping => Queue in Supabase => feed Groq LLama 4 model + custom prompt = tags  => MarqoFashionClipSigLIP = vector =====> Pinecone(Vector + tags)
-- User prompt + user photo ==> feed Groq LLama3 (user_prompt + custom prompt) = tags, filters, prompt => MarqoFashionClipSigLIP(prompt) = vector =====> Pinecone(Vector + tags + filters) = top 5 fits ==> feed Groq LLama 3 (5 fits + prompt ask for matching) ====> display result
+- User voice => fetchAi agent => text prompt + user photo ==> feed Groq LLama3 (user_prompt + custom prompt) = tags, filters, prompt => MarqoFashionClipSigLIP(prompt) = vector =====> Pinecone(Vector + tags + filters) = top 5 fits ==> feed Groq LLama 3 (5 fits + prompt ask for matching) ====> display result
 - Results => Replicate Try-On model => User final photo with final fit
 
 ## How to run Backend
