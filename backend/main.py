@@ -9,6 +9,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from groq import Groq
 import replicate
+import base64
 
 load_dotenv()
 
@@ -18,6 +19,7 @@ index_m = pc.Index("menf")
 index_w = pc.Index("womenf")
 
 replicate_client = replicate.Client(api_key=os.getenv("REPLICATE"))
+
 # Load fastapi
 app = FastAPI()
 app.add_middleware(
@@ -223,15 +225,27 @@ def vectorize_prompt(data: dict):
 def vectorize_prompt(data: dict):
     prompt = data["prompt"]
     gender = data["gender"]
+    image = data["image"]
     if gender == "men":
         index = index_m
         fit = gen_fits_men(prompt)         # Use LLaMA to generate fits
     else:
         index = index_w
         fit = gen_fits_women(prompt)         # Use LLaMA to generate fits     
-  
-    vector = vectorize(prompt)      # Get vector from MarqoFashionCLIP
-    print(fit)
+    vector = vectorize(prompt)
+  ###########################
+    if len(image) > 0:
+        # print(image)
+        print(image[0])
+        # image = base64.decode(image[0]['data_url'])
+        # image = image[0].read()
+        image = preprocess_val(image[0]).unsqueeze(0).to(device)
+        image_emb = model.encode_image(image, normalize=True)
+        vector = image_emb.squeeze(0).cpu().tolist()
+    else:
+        vector = vectorize(prompt)
+  ###########################
+    # Get vector from MarqoFashionCLIP
 
     final_fit = []
     for i in fit:
@@ -357,6 +371,7 @@ def _determine_category(garm: any):
         return "dresses"
     return ""
 
+
 # def _handle_dresses(model_photo, garm):
 #     output1 = replicate_client.run(
 #                         "cuuupid/idm-vton:0513734a452173b8173e907e3a59d19a36266e55b48528559432bd21c7d7e985",
@@ -389,4 +404,4 @@ def _determine_category(garm: any):
 #     return output2
 
 
-# uvicorn.run(app, host="127.0.0.1", port=8000)
+uvicorn.run(app, host="127.0.0.1", port=8000)

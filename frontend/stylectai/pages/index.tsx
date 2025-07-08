@@ -35,21 +35,22 @@ const Index = () => {
     dispatch(changeGender(gender))
   }
 
-  const handleSearch = async (query: string) => {
+  const handleSearch = async (query: string, image: any) => {
     if (!query.trim()) return
 
-    const url = "/api/query_prompt"
+    const url = "http://127.0.0.1:8000/api/query_prompt"
     setIsLoading(true)
     setError(null)
     setHasSearched(true)
 
     try {
+      console.log(image)
       const response = await fetch(url, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ prompt: query, gender: selectedGender }),
+        body: JSON.stringify({ prompt: query, gender: selectedGender, image: image }),
       })
 
       if (!response.ok) {
