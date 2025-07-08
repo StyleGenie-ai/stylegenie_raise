@@ -15,7 +15,7 @@ export default function TitlebarImageList(props:any) {
               >
                 <section className="container mx-auto mb-12">
                   <div className="flex flex-wrap -mx-2">
-                    {props.recommendations.map((style: Style) => {
+                    {props.recommendations?.map((style: Style) => {
                       return (
                         <div key={style.index} className="w-full md:w-1/3 animate-pop-in">
                           <div className="bg-white p-6 flex items-center flex-col">

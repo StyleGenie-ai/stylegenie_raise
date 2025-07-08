@@ -41,7 +41,7 @@ const Index = () => {
   };
   const handleSearch = async (query: string) => {
     if (!query.trim()) return
-    const url = (alignment ==="women") ? "http://127.0.0.1:8000/api/queryy" : "http://127.0.0.1:8000/api/queryy_men"
+    const url = "http://127.0.0.1:8000/api/query_prompt";
     setIsLoading(true)
     setError(null)
     setHasSearched(true)
@@ -52,7 +52,7 @@ const Index = () => {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ prompt: query }),
+        body: JSON.stringify({ prompt: query, gender:  alignment}),
       })
 
       if (!response.ok) {
