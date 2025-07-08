@@ -4,7 +4,13 @@ Ai magic to turn your special events into fashioned memories
 ## Workflow
 ![Screenshot 1](.res/style_genie1.png)  
 ![Screenshot 1](.res/style_genie2.png)  
-[excalidraw.com](https://excalidraw.com/#json=IReMy21lGCVlc0-zm6GO-,Xhx8-JUIFLT8zvGy2u6Vqg)
+![Screenshot 1](.res/style_genie3.png)  
+[excalidraw.com](https://excalidraw.com/#json=p8WtNO5GwYW8236ERYRtP,V1oXMjJ2XGuJU6HnjeAh5g)
+
+## Quick overview 
+- Scrapping => Queue in Supabase => feed Groq LLama 4 model + custom prompt = tags  => MarqoFashionClipSigLIP = vector =====> Pinecone(Vector + tags)
+- User prompt + user photo ==> feed Groq LLama3 (user_prompt + custom prompt) = tags, filters, prompt => MarqoFashionClipSigLIP(prompt) = vector =====> Pinecone(Vector + tags + filters) = top 5 fits ==> feed Groq LLama 3 (5 fits + prompt ask for matching) ====> display result
+- Results => Replicate Try-On model => User final photo with final fit
 
 ## How to run Backend
 - `cd backend`
