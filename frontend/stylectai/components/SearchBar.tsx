@@ -20,7 +20,7 @@ const SearchBar = ({ onSearch }: SearchBarProps) => {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex gap-2 w-full">
+    <form onSubmit={handleSubmit} className="flex gap-2 w-full mb-8">
       <div className="relative flex-1">
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
         <Input
