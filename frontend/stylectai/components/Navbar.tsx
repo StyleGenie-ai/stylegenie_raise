@@ -7,7 +7,7 @@ import ChatInterface from "@/pages/session_test";
 
 const Navbar = () => {
   return (
-    <nav className="border-b py-4 px-6 bg-white/80 backdrop-blur-md sticky top-0 z-50">
+    <nav className="border-b py-1 px-6 bg-white/80 backdrop-blur-md sticky top-0 z-50">
       <div className="max-w-7xl mx-auto flex items-center justify-between">
         <div className="flex items-center space-x-12">
           <Logo />
@@ -16,12 +16,12 @@ const Navbar = () => {
             <a href="/" className="text-sm font-medium text-foreground hover:text-primary transition-colors">
               Home
             </a>
-            <a href="/HomeWithRecommendation" className="text-sm font-medium text-foreground hover:text-primary transition-colors">
+            {/* <a href="/HomeWithRecommendation" className="text-sm font-medium text-foreground hover:text-primary transition-colors">
               Home with Chatbot
             </a>
             <a href="/session_test" className="text-sm font-medium text-foreground hover:text-primary transition-colors">
               Test Chatbot
-            </a>
+            </a> */}
             <a href="/categories" className="text-sm font-medium text-foreground hover:text-primary transition-colors">
               Categories
             </a>
@@ -31,16 +31,16 @@ const Navbar = () => {
           </div>
         </div>
         
-        <div className="relative w-full max-w-xs hidden md:block">
+        {/* <div className="relative w-full max-w-xs hidden md:block">
           <Input 
             type="search" 
             placeholder="Search..." 
             className="pr-10 bg-secondary/50 border-0 focus:ring-primary/20 focus-visible:ring-primary/20" 
           />
           <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        </div>
+        </div> */}
         
-        <div className="flex items-center space-x-4">
+        {/* <div className="flex items-center space-x-4">
           <Button variant="ghost" size="icon" className="md:hidden">
             <Search className="h-5 w-5" />
           </Button>
@@ -50,7 +50,7 @@ const Navbar = () => {
           <Button size="sm" className="hidden md:inline-flex">
             Sign Up
           </Button>
-        </div>
+        </div> */}
       </div>
     </nav>
   );

@@ -5,9 +5,8 @@ import Footer from "@/components/Footer"
 import Navbar from "@/components/Navbar"
 import SearchBar from "@/components/SearchBar"
 import SearchResults from "@/components/SearchResults"
+import GenderSelector from "@/components/GenderSelector"
 import { Loader2 } from "lucide-react"
-import ToggleButton from '@mui/material/ToggleButton';
-import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 import { useDispatch } from "react-redux"
 import { changeGender } from "@/slices/genderSlice"
 
@@ -24,24 +23,22 @@ export interface FashionItem {
 }
 
 const Index = () => {
-
   const dispatch = useDispatch()
   const [searchResults, setSearchResults] = useState<FashionItem[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [hasSearched, setHasSearched] = useState(false)
-  const [alignment, setAlignment] = useState('women');
+  const [selectedGender, setSelectedGender] = useState<"women" | "men">("women")
 
-  const handleToggle = (
-    event: React.MouseEvent<HTMLElement>,
-    newGender: string,
-  ) => {
-    setAlignment(newGender);
-    dispatch(changeGender(newGender));
-  };
+  const handleGenderChange = (gender: "women" | "men") => {
+    setSelectedGender(gender)
+    dispatch(changeGender(gender))
+  }
+
   const handleSearch = async (query: string) => {
     if (!query.trim()) return
-    const url = "http://127.0.0.1:8000/api/query_prompt";
+
+    const url = "http://95.179.209.163/api/query_prompt"
     setIsLoading(true)
     setError(null)
     setHasSearched(true)
@@ -52,7 +49,7 @@ const Index = () => {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ prompt: query, gender:  alignment}),
+        body: JSON.stringify({ prompt: query, gender: selectedGender }),
       })
 
       if (!response.ok) {
@@ -73,28 +70,25 @@ const Index = () => {
     <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
       <main className="flex-grow">
-        <div className="py-4 px-4">
+        <div className="py-8 px-4">
           <div className="max-w-7xl mx-auto">
-            <div className="text-center mb-4 animate-fade-in">
-              <h1 className="text-2xl md:text-4xl font-playfair font-semibold mb-1">
+            {/* Header Section */}
+            <div className="text-center mb-8 animate-fade-in">
+              <h1 className="text-3xl md:text-5xl font-playfair font-semibold mb-3">
                 Discover Your <span className="text-primary">Perfect Style</span>
               </h1>
-              <p className="text-sm text-muted-foreground max-w-2xl mx-auto">
+              <p className="text-lg text-muted-foreground max-w-2xl mx-auto mb-6">
                 Find fashion recommendations tailored to your preferences
               </p>
+
+              {/* Gender Selection */}
+              <div className="mb-6">
+                <GenderSelector selectedGender={selectedGender} onGenderChange={handleGenderChange} />
+              </div>
             </div>
 
+            {/* Search Section */}
             <div className="max-w-4xl mx-auto mb-8">
-              <ToggleButtonGroup
-                color="standard"
-                value={alignment}
-                exclusive
-                onChange={handleToggle}
-                aria-label="Platform"
-              >
-                <ToggleButton value="women">Women</ToggleButton>
-                <ToggleButton value="men">Men</ToggleButton>
-              </ToggleButtonGroup>
               <SearchBar onSearch={handleSearch} />
             </div>
 
@@ -116,7 +110,9 @@ const Index = () => {
             )}
 
             {/* Search Results */}
-            {!isLoading && !error && hasSearched && <SearchResults results={searchResults} />}
+            {!isLoading && !error && hasSearched && (
+              <SearchResults results={searchResults} selectedGender={selectedGender} />
+            )}
           </div>
         </div>
       </main>
