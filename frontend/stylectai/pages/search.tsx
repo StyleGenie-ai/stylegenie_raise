@@ -38,7 +38,7 @@ const Index = () => {
   const handleSearch = async (query: string) => {
     if (!query.trim()) return
 
-    const url = "http://95.179.209.163/api/query_prompt"
+    const url = "/api/query_prompt"
     setIsLoading(true)
     setError(null)
     setHasSearched(true)
