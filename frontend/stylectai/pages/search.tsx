@@ -8,6 +8,8 @@ import SearchResults from "@/components/SearchResults"
 import { Loader2 } from "lucide-react"
 import ToggleButton from '@mui/material/ToggleButton';
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
+import { useDispatch } from "react-redux"
+import { changeGender } from "@/slices/genderSlice"
 
 export interface FashionItem {
   ID: string
@@ -22,6 +24,8 @@ export interface FashionItem {
 }
 
 const Index = () => {
+
+  const dispatch = useDispatch()
   const [searchResults, setSearchResults] = useState<FashionItem[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -30,9 +34,10 @@ const Index = () => {
 
   const handleToggle = (
     event: React.MouseEvent<HTMLElement>,
-    newAlignment: string,
+    newGender: string,
   ) => {
-    setAlignment(newAlignment);
+    setAlignment(newGender);
+    dispatch(changeGender(newGender));
   };
   const handleSearch = async (query: string) => {
     if (!query.trim()) return

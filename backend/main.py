@@ -1,3 +1,4 @@
+import replicate.client
 import os, json, uvicorn, torch
 import open_clip
 from dotenv import load_dotenv
@@ -7,6 +8,7 @@ from pinecone import Pinecone
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from groq import Groq
+import replicate
 
 load_dotenv()
 
@@ -15,6 +17,7 @@ pc = Pinecone(api_key=os.getenv("PINE_CONE"))
 index_m = pc.Index("menf")
 index_w = pc.Index("womenf")
 
+replicate_client = replicate.Client(api_key=os.getenv("REPLICATE"))
 # Load fastapi
 app = FastAPI()
 app.add_middleware(
@@ -260,6 +263,42 @@ def vectorize_promptt(data: dict):
 
     return final_fit
 
+@app.post("/api/try_on")
+def tryOn(data: dict):
+    print("I am here!!")
+    model_photo = data["human_img"]
+    garms = data["garms"]
+    print(model_photo)
+    print(garms)
+    output = ""
+    price = 0
+    for garm in garms:
+        price += garm["price"]
+        category = _determine_category(garm)
+        # if category == "dresses":
+        #     output = _handle_dresses(model_photo, garm)
+        # else:
+        garment_photo = garm["image"]
+        if output != "":
+            model_photo = str(output)
+        if category != "":
+            output = replicate_client.run(
+                    "cuuupid/idm-vton:0513734a452173b8173e907e3a59d19a36266e55b48528559432bd21c7d7e985",
+                input={
+                    "crop": False,
+                    "seed": 42,
+                    "steps": 20,
+                    "category": category,
+                    "force_dc": False,
+                    "garm_img": garment_photo,
+                    "human_img": model_photo,
+                    "mask_only": False,
+                    "garment_des" : "a garmet!"
+                }
+            )
+    print("Am I ever getting here ? ")
+    print(output)
+    return {"image": str(output), "price": price}
 
 @app.post("/api/queryy_men")
 def vectorize_promptt(data: dict):
@@ -342,4 +381,49 @@ def vectorize_prompt(data: dict):
         })
     # print(results.matches)
     return fits
-# uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)
+
+def _determine_category(garm: any):
+    upper_body = ['hoodie', 'sweatshirt', 't-shirt', 'top', 'blazer', 'bra', 'jacket', 'shirt', 'turtleneck', 'blouse', 'cardigan', 'sweater', 'vest', "polo" ]
+    lower_body = ['trousers', 'skirt', 'jeans', 'pants', 'shorts', 'tights', 'sweatpants']
+    dresses = ['dress', 'minidress', 'bodysuit', 'coat']
+    if garm["item"] in upper_body:
+        return "upper_body"
+    if garm["item"] in lower_body:
+        return "lower_body"
+    if garm["item"] in dresses:
+        return "dresses"
+    return ""
+
+# def _handle_dresses(model_photo, garm):
+#     output1 = replicate_client.run(
+#                         "cuuupid/idm-vton:0513734a452173b8173e907e3a59d19a36266e55b48528559432bd21c7d7e985",
+#                     input={
+#                         "crop": False,
+#                         "seed": 42,
+#                         "steps": 20,
+#                         "category": "upper_body",
+#                         "force_dc": False,
+#                         "garm_img": garm["image"],
+#                         "human_img": model_photo,
+#                         "mask_only": False,
+#                         "garment_des" : "a garmet!"
+#                     }
+#                 )
+#     output2 = replicate_client.run(
+#                     "cuuupid/idm-vton:0513734a452173b8173e907e3a59d19a36266e55b48528559432bd21c7d7e985",
+#                 input={
+#                     "crop": False,
+#                     "seed": 42,
+#                     "steps": 20,
+#                     "category": "lower_body",
+#                     "force_dc": False,
+#                     "garm_img": str(output1),
+#                     "human_img": model_photo,
+#                     "mask_only": False,
+#                     "garment_des" : "a garmet!"
+#                 }
+#             )
+#     return output2
+
+
+uvicorn.run(app, host="127.0.0.1", port=8000)
