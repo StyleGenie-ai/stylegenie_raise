@@ -389,4 +389,4 @@ def _determine_category(garm: any):
 #     return output2
 
 
-uvicorn.run(app, host="127.0.0.1", port=8000)
+# uvicorn.run(app, host="127.0.0.1", port=8000)

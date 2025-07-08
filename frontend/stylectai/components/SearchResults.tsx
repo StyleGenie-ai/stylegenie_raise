@@ -82,7 +82,7 @@ const SearchResults = ({ results, selectedGender }: SearchResultsProps) => {
     const human_img = selectedGender === "women" ? female_photo : male_photo
 
     try {
-      const response = await fetch("http://127.0.0.1:8000/api/try_on", {
+      const response = await fetch("/api/try_on", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
