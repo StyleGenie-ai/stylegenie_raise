@@ -1,6 +1,7 @@
 # Style Genie
 Ai magic to turn your special events into fashioned memories
-
+## Live
+- [95.179.209.163/search](http://95.179.209.163/search)
 ## Workflow
 ![Screenshot 1](.res/style_genie1.png)  
 ![Screenshot 1](.res/style_genie2.png)  
