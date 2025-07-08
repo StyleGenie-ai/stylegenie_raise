@@ -1,76 +1,127 @@
-import { useState } from "react";
-import Footer from "@/components/Footer";
-// import ImageUpload from "@/components/ImageUpload";
-import Navbar from "@/components/Navbar";
-import SearchBar from "@/components/SearchBar";
-import Newsletter from "@/components/NewsLetter";
-import RecommendButton from "@/components/RecommendationBtn";
-import FashionRecommendations from "@/components/RecommendationList";
+"use client"
+
+import { useState } from "react"
+import Footer from "@/components/Footer"
+import Navbar from "@/components/Navbar"
+import SearchBar from "@/components/SearchBar"
+import SearchResults from "@/components/SearchResults"
+import GenderSelector from "@/components/GenderSelector"
+import { Loader2 } from "lucide-react"
+import { useDispatch } from "react-redux"
+import { changeGender } from "@/slices/genderSlice"
+
+export interface FashionItem {
+  ID: string
+  item: string
+  Name: string
+  Brand: string
+  Description: string
+  tags: string[]
+  image: string
+  link: string
+  price: number
+}
 
 import SideBar from "@/components/Sidebar";
 import SideBarMobile from "@/components/MobileSideBar";
 
 const Index = () => {
-  const [showRecommendations, setShowRecommendations] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [activeGender, setActiveGender] = useState<'man' | 'woman'>('man');
+  const dispatch = useDispatch()
+  const [searchResults, setSearchResults] = useState<FashionItem[]>([])
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [hasSearched, setHasSearched] = useState(false)
+  const [selectedGender, setSelectedGender] = useState<"women" | "men">("women")
 
-  const handleGetRecommendations = () => {
-    setShowRecommendations(true);
-  };
+  const handleGenderChange = (gender: "women" | "men") => {
+    setSelectedGender(gender)
+    dispatch(changeGender(gender))
+  }
+
+  const handleSearch = async (query: string) => {
+    if (!query.trim()) return
+
+    const url = "/api/query_prompt"
+    setIsLoading(true)
+    setError(null)
+    setHasSearched(true)
+
+    try {
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ prompt: query, gender: selectedGender }),
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const data: FashionItem[] = await response.json()
+      setSearchResults(data)
+    } catch (err) {
+      setError("Failed to fetch search results. Please try again.")
+      console.error("Search error:", err)
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
-      {/* Sidebar */}
-   
+      <Navbar />
+      <main className="flex-grow">
+        <div className="py-8 px-4">
+          <div className="max-w-7xl mx-auto">
+            {/* Header Section */}
+            <div className="text-center mb-8 animate-fade-in">
+              <h1 className="text-3xl md:text-5xl font-playfair font-semibold mb-3">
+                Discover Your <span className="text-primary">Perfect Style</span>
+              </h1>
+              <p className="text-lg text-muted-foreground max-w-2xl mx-auto mb-6">
+                Find fashion recommendations tailored to your preferences
+              </p>
 
-    
-      <div className="flex-1 flex flex-col min-h-screen relative">
-        <Navbar />
-        {/* Absolutely positioned sidebar for desktop */}
-        <div className="hidden md:block">
-          <div className="absolute top-0 left-0 h-full">
-            <SideBar activeGender={activeGender} setActiveGender={setActiveGender} setSidebarOpen={setSidebarOpen} sidebarOpen={sidebarOpen}/>
+              {/* Gender Selection */}
+              <div className="mb-6">
+                <GenderSelector selectedGender={selectedGender} onGenderChange={handleGenderChange} />
+              </div>
+            </div>
+
+            {/* Search Section */}
+            <div className="max-w-4xl mx-auto mb-8">
+              <SearchBar onSearch={handleSearch} />
+            </div>
+
+            {/* Loading State */}
+            {isLoading && (
+              <div className="flex justify-center items-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <span className="ml-2 text-muted-foreground">Searching for your perfect style...</span>
+              </div>
+            )}
+
+            {/* Error State */}
+            {error && (
+              <div className="text-center py-12">
+                <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-6 max-w-md mx-auto">
+                  <p className="text-destructive font-medium">{error}</p>
+                </div>
+              </div>
+            )}
+
+            {/* Search Results */}
+            {!isLoading && !error && hasSearched && (
+              <SearchResults results={searchResults} selectedGender={selectedGender} />
+            )}
           </div>
         </div>
-
-          <button
-              className="fixed top-4 right-4 z-50 md:hidden bg-primary text-white p-2 rounded-lg shadow-lg focus:outline-none"
-               onClick={() => setSidebarOpen(!sidebarOpen)}
-                     aria-label="Toggle sidebar"
-          >
-              {sidebarOpen ? (
-                  <span>&#10005;</span>
-               ) : (
-                 <span>&#9776;</span>
-               )}
-          </button>
-          <SideBarMobile setSidebarOpen={setSidebarOpen} setActiveGender={setActiveGender} activeGender={activeGender} sidebarOpen={sidebarOpen}/>
-        <main className="flex-grow">
-          <div className="py-4 px-4">
-            <div className="max-w-7xl mx-auto mt-12">
-              <div className="text-center mb-4 animate-fade-in">
-                <h1 className="text-2xl md:text-4xl font-playfair font-semibold mb-1">
-                  Discover Your <span className="text-primary">Perfect Style</span>
-                </h1>
-                <p className="text-sm text-muted-foreground max-w-2xl mx-auto">
-                  Find fashion recommendations tailored to your preferences
-                </p>
-              </div>
-              <div className="max-w-4xl mx-auto mb-2">
-                <SearchBar onSearch={() => {}} />
-              {/*   <ImageUpload /> */}
-                <RecommendButton onClick={handleGetRecommendations} />
-              </div>
-              {showRecommendations && <FashionRecommendations />}
-            </div>
-          </div>
-        </main>
-        <Newsletter />
-        <Footer />
-      </div>
+      </main>
+      <Footer />
     </div>
-  );
-};
+  )
+}
 
-export default Index;
+export default Index

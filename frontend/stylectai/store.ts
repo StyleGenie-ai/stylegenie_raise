@@ -2,13 +2,18 @@ import { configureStore } from '@reduxjs/toolkit'
 import singleRecommendationsReducer from "./slices/singleRecommendationsSlice"
 import outfitRecommendationsReducer from "./slices/outfitRecommendationsSlice"
 import uploadedImageReducer from "./slices/uploadedImageSlice"
+import personalImageReducer from "./slices/personalImageSlice"
+import genderReducer from "./slices/genderSlice"
+
 import { createWrapper } from "next-redux-wrapper";
 
 export const store = configureStore({
   reducer: {
     singleRecommendations: singleRecommendationsReducer,
     outfitRecommendations: outfitRecommendationsReducer,
-    uploadedImage: uploadedImageReducer
+    uploadedImage: uploadedImageReducer,
+    personalImage: personalImageReducer,
+    gender: genderReducer,
   },
 })
 

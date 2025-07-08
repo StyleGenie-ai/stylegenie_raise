@@ -9,3 +9,4 @@ typing
 dotenv
 uvicorn
 groq
+replicate
