@@ -308,6 +308,43 @@ def vectorize_prompt(data: dict):
     # print(results.matches)
     return fits
 
+@app.post("/api/try_on")
+def tryOn(data: dict):
+    print("I am here!!")
+    model_photo = data["human_img"]
+    garms = data["garms"]
+    print(model_photo)
+    print(garms)
+    output = ""
+    price = 0
+    for garm in garms:
+        price += garm["price"]
+        category = _determine_category(garm)
+        # if category == "dresses":
+        #     output = _handle_dresses(model_photo, garm)
+        # else:
+        garment_photo = garm["image"]
+        if output != "":
+            model_photo = str(output)
+        if category != "":
+            output = replicate_client.run(
+                    "cuuupid/idm-vton:0513734a452173b8173e907e3a59d19a36266e55b48528559432bd21c7d7e985",
+                input={
+                    "crop": False,
+                    "seed": 42,
+                    "steps": 20,
+                    "category": category,
+                    "force_dc": False,
+                    "garm_img": garment_photo,
+                    "human_img": model_photo,
+                    "mask_only": False,
+                    "garment_des" : "a garmet!"
+                }
+            )
+    print("Am I ever getting here ? ")
+    print(output)
+    return {"image": str(output), "price": price}
+
 def _determine_category(garm: any):
     upper_body = ['hoodie', 'sweatshirt', 't-shirt', 'top', 'blazer', 'bra', 'jacket', 'shirt', 'turtleneck', 'blouse', 'cardigan', 'sweater', 'vest', "polo" ]
     lower_body = ['trousers', 'skirt', 'jeans', 'pants', 'shorts', 'tights', 'sweatpants']
