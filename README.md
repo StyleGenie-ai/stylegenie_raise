@@ -4,7 +4,8 @@ Ai magic to turn your special events into fashioned memories
 ## Demo
 - [youtu.be/Hg24F2vayWY](https://youtu.be/Hg24F2vayWY)
 ## Live
-- [95.179.209.163/search](http://95.179.209.163/search)
+- [style-genie.com](https://style-genie.com)
+- [style-genie.com/landing/](https://style-genie.com/landing/)
 
 ## Workflow
 ![Screenshot 1](.res/style_genie1.png)  
@@ -83,7 +84,7 @@ Ai magic to turn your special events into fashioned memories
 
 # Authors
 - Noor Amjad - [GitHub](https://github.com/Justxd22) / [Twitter](https://twitter.com/_xd222) / [LinkedIn](https://www.linkedin.com/in/noor-amjad-xd)
-- Juliana -
-- Nada - 
-- Garret -
+- Juliana - [LinkedIn] https://www.linkedin.com/in/juliana-ferraz-varela/
+- Nada -[GitHub] https://github.com/NadaKartouch / [LinkedIn] https://www.linkedin.com/in/nada-kartouch-82958952/
+- Garret - [GitHub]https://github.com/enxigarret / [LinkedIn] https://www.linkedin.com/in/enxi-l-garret-948b36a9/
 

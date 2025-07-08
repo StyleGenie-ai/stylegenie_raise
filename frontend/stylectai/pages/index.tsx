@@ -22,9 +22,6 @@ export interface FashionItem {
   price: number
 }
 
-import SideBar from "@/components/Sidebar";
-import SideBarMobile from "@/components/MobileSideBar";
-
 const Index = () => {
   const dispatch = useDispatch()
   const [searchResults, setSearchResults] = useState<FashionItem[]>([])
